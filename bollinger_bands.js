@@ -81,17 +81,6 @@ let calc_bollinger_bands = (input_price_array, sma, stdev_arr, limit) => {
   return bollinger_bands
 }
 
-
-// let main = async () => {
-//   let input_price_array = [1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1]
-//   let sma = simple_moving_average(n, input_price_array)
-//   let stdev_arr = stdev(n, input_price_array)]
-//   let bollinger_bands = calc_bollinger_bands(input_price_array, sma, stdev_arr)
-//   return bollinger_bands
-// }
-// main()
-
-
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html')
 })
@@ -101,14 +90,9 @@ app.get('/bollinger_bands', async (req, res) => {
 
   fetchUrl(coinbase_btc_url, (error, meta, body) => {
     let cb_response = JSON.parse(body.toString())
-    // console.log(cb_response)
     let input_price_array = cb_response.map((x) => {
-
-      // console.log(x[4])
-      return x[4]
+      return x[4] // grab the element at index 4 which is the close price
     })
-    // console.log(input_price_array)
-    // process.exit()
 
     let sma = simple_moving_average(n, input_price_array)
     , stdev_arr = stdev(n, input_price_array)
