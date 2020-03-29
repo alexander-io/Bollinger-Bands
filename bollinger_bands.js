@@ -1,3 +1,6 @@
+let coinbase_btc_url = 'https://api.pro.coinbase.com/products/LTC-USD/candles?granularity=3600'
+, fetchUrl = require("fetch").fetchUrl;
+
 let express = require('express')
 , app = express()
 , port = 8080
@@ -12,7 +15,6 @@ let express = require('express')
  , n = 20
 
 // simple moving average
-// assume input_price_array is ordered from [oldest -> newest]
 let simple_moving_average = (limit, input_price_array) => {
   let running_total = 0;
   let output_price_array = []
@@ -39,11 +41,10 @@ let calc_mean_of_period = (period, input_price_array) => {
   return running_total/(period.end-period.start)
 }
 
-// TODO : standard deviation
+// standard deviation
 let stdev = (limit, input_price_array) => {
   let output_stdev_array = []
   for (let i = 0; i < limit; i++) output_stdev_array.push(null)
-
 
   for (let i = limit; i < input_price_array.length; i++) {
     let mean = calc_mean_of_period({start:i-limit,end:i}, input_price_array)
@@ -60,7 +61,7 @@ let stdev = (limit, input_price_array) => {
   return output_stdev_array
 }
 
-let calc_bollinger_bands = (input_price_array, sma, stdev_arr) => {
+let calc_bollinger_bands = (input_price_array, sma, stdev_arr, limit) => {
   let bollinger_bands = {
     'price' : input_price_array,
     'sma' : sma,
@@ -69,11 +70,17 @@ let calc_bollinger_bands = (input_price_array, sma, stdev_arr) => {
   }
 
   for (let x = 0; x < input_price_array.length;x++) {
-    bollinger_bands['upper-band'].push(sma[x] + (k*stdev_arr[x]))
-    bollinger_bands['lower-band'].push(sma[x] - (k*stdev_arr[x]))
+    if (x < limit) {
+      bollinger_bands['upper-band'].push(null)
+      bollinger_bands['lower-band'].push(null)
+    } else {
+      bollinger_bands['upper-band'].push(sma[x] + (k*stdev_arr[x]))
+      bollinger_bands['lower-band'].push(sma[x] - (k*stdev_arr[x]))
+    }
   }
   return bollinger_bands
 }
+
 
 // let main = async () => {
 //   let input_price_array = [1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1]
@@ -89,13 +96,26 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html')
 })
 
-app.get('/bollinger_bands', (req, res) => {
-  let input_price_array = [1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1]
-  , sma = simple_moving_average(n, input_price_array)
-  , stdev_arr = stdev(n, input_price_array)
-  , bollinger_bands = calc_bollinger_bands(input_price_array, sma, stdev_arr)
+app.get('/bollinger_bands', async (req, res) => {
+  // let input_price_array = [1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1]
 
-  res.json({'bollinger_bands' : bollinger_bands})
+  fetchUrl(coinbase_btc_url, (error, meta, body) => {
+    let cb_response = JSON.parse(body.toString())
+    // console.log(cb_response)
+    let input_price_array = cb_response.map((x) => {
+
+      // console.log(x[4])
+      return x[4]
+    })
+    // console.log(input_price_array)
+    // process.exit()
+
+    let sma = simple_moving_average(n, input_price_array)
+    , stdev_arr = stdev(n, input_price_array)
+    , bollinger_bands = calc_bollinger_bands(input_price_array, sma, stdev_arr, n)
+
+    res.json({'bollinger_bands' : bollinger_bands})
+  })
 })
 
 app.listen(port, () => {
