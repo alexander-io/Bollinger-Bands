@@ -1,3 +1,7 @@
+let express = require('express')
+, app = express()
+, port = 8080
+
 /*
  * Bollinger Bands consist of an N-period moving average (MA),
  * an upper band at K times an N-period standard deviation above the moving average (MA + Kσ),
@@ -5,7 +9,7 @@
  */
 
  const k = 2
- const n = 20
+ , n = 20
 
 // simple moving average
 // assume input_price_array is ordered from [oldest -> newest]
@@ -71,25 +75,29 @@ let calc_bollinger_bands = (input_price_array, sma, stdev_arr) => {
   return bollinger_bands
 }
 
-let main = async () => {
+// let main = async () => {
+//   let input_price_array = [1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1]
+//   let sma = simple_moving_average(n, input_price_array)
+//   let stdev_arr = stdev(n, input_price_array)]
+//   let bollinger_bands = calc_bollinger_bands(input_price_array, sma, stdev_arr)
+//   return bollinger_bands
+// }
+// main()
+
+
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html')
+})
+
+app.get('/bollinger_bands', (req, res) => {
   let input_price_array = [1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1]
-  let sma = simple_moving_average(n, input_price_array)
-  let stdev_arr = stdev(n, input_price_array)
+  , sma = simple_moving_average(n, input_price_array)
+  , stdev_arr = stdev(n, input_price_array)
+  , bollinger_bands = calc_bollinger_bands(input_price_array, sma, stdev_arr)
 
-  let bollinger_bands = calc_bollinger_bands(input_price_array, sma, stdev_arr)
+  res.json({'bollinger_bands' : bollinger_bands})
+})
 
-  console.log(bollinger_bands)
-
-
-  // for (let x = 0; x < input_price_array.length;x++) {
-  //   console.log(
-  //     'price :', input_price_array[x],
-  //     '\nmean :', sma[x],
-  //     '\nupper-band :', sma[x] + (k*stdev_arr[x]),
-  //     '\nlower-band :', sma[x] - (k*stdev_arr[x]),
-  //     '\n\n'
-  //   )
-  // }
-
-}
-main()
+app.listen(port, () => {
+  console.log('listening on', port)
+})
